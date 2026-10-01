@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "auigrid": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "auigrid-mcp-server@latest"]
+    }
+  }
+}
