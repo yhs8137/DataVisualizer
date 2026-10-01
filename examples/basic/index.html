@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AUIGrid 기본 예제</title>
+
+  <!-- AUIGrid 라이선스 파일 (필수) -->
+  <script src="../../AUIGrid/AUIGridLicense.js"></script>
+  <!-- AUIGrid 메인 라이브러리 (필수) -->
+  <script src="../../AUIGrid/AUIGrid.js"></script>
+  <!-- AUIGrid 테마 CSS (필수) -->
+  <link rel="stylesheet" href="../../AUIGrid/AUIGrid_style.css">
+
+  <!-- 샘플 데이터 -->
+  <script src="./data.js"></script>
+
+  <style>
+    body { font-family: sans-serif; margin: 24px; }
+    .toolbar { margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .toolbar button { padding: 6px 12px; cursor: pointer; }
+    .align-right { text-align: right; }
+    #log { margin-top: 12px; padding: 8px; background: #f5f5f5; white-space: pre-wrap; font-size: 13px; min-height: 40px; }
+  </style>
+</head>
+<body>
+  <h1>AUIGrid 기본 예제</h1>
+
+  <div class="toolbar">
+    <button id="btnAdd">행 추가</button>
+    <button id="btnRemove">선택 행 삭제</button>
+    <button id="btnChanges">변경 내역 확인</button>
+    <button id="btnReload">데이터 다시 불러오기</button>
+  </div>
+
+  <!-- 그리드가 생성될 영역 -->
+  <div id="grid_wrap" style="width: 100%; height: 420px;"></div>
+
+  <div id="log">셀을 클릭하거나 편집해 보세요.</div>
+
+  <script>
+    // AUIGrid 생성 후 반환되는 ID
+    let myGridID;
+
+    const log = (msg) => {
+      document.getElementById("log").textContent = msg;
+    };
+
+    // 칼럼 레이아웃 정의
+    const columnLayout = [
+      { dataField: "id", headerText: "ID", width: 60, editable: false },
+      { dataField: "name", headerText: "이름", width: 120 },
+      { dataField: "country", headerText: "국가", width: 110 },
+      { dataField: "product", headerText: "상품", width: 120 },
+      {
+        dataField: "quantity",
+        headerText: "수량",
+        dataType: "numeric",
+        style: "align-right",
+        width: 90
+      },
+      {
+        dataField: "price",
+        headerText: "단가",
+        dataType: "numeric",
+        formatString: "#,##0", // 천단위 콤마
+        style: "align-right",
+        width: 120
+      },
+      {
+        dataField: "date",
+        headerText: "주문일",
+        dataType: "date",
+        dateInputFormat: "yyyy-mm-dd", // 원본 데이터 형식
+        formatString: "yyyy년 mm월 dd일" // 화면 표시 형식
+      }
+    ];
+
+    // 그리드 속성
+    const gridProps = {
+      editable: true,          // 셀 편집 허용
+      showStateColumn: true,   // 추가/수정/삭제 상태 칼럼 표시
+      selectionMode: "multipleCells",
+      noDataMessage: "출력할 데이터가 없습니다."
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // 그리드 생성
+      myGridID = AUIGrid.create("#grid_wrap", columnLayout, gridProps);
+
+      // 데이터 삽입 (원본이 바뀌지 않도록 복사본 사용)
+      AUIGrid.setGridData(myGridID, structuredClone(window.SAMPLE_DATA));
+
+      // 셀 클릭 이벤트
+      AUIGrid.bind(myGridID, "cellClick", (event) => {
+        log(`cellClick → ${event.rowIndex}행 "${event.headerText}" : ${event.value}`);
+      });
+
+      // 셀 편집 완료 이벤트
+      AUIGrid.bind(myGridID, "cellEditEnd", (event) => {
+        log(`cellEditEnd → "${event.headerText}" : ${event.oldValue} → ${event.value}`);
+      });
+
+      // 행 추가
+      document.getElementById("btnAdd").addEventListener("click", () => {
+        const nextId = Math.max(0, ...AUIGrid.getGridData(myGridID).map((r) => r.id || 0)) + 1;
+        AUIGrid.addRow(myGridID, {
+          id: nextId,
+          name: "",
+          country: "",
+          product: "",
+          quantity: 0,
+          price: 0,
+          date: new Date().toISOString().slice(0, 10)
+        }, "last");
+      });
+
+      // 선택 행 삭제
+      document.getElementById("btnRemove").addEventListener("click", () => {
+        AUIGrid.removeRow(myGridID, "selectedIndex");
+      });
+
+      // 추가/수정/삭제 내역 확인
+      document.getElementById("btnChanges").addEventListener("click", () => {
+        const added = AUIGrid.getAddedRowItems(myGridID);
+        const edited = AUIGrid.getEditedRowItems(myGridID);
+        const removed = AUIGrid.getRemovedItems(myGridID);
+        log(
+          `추가: ${added.length}건, 수정: ${edited.length}건, 삭제: ${removed.length}건\n` +
+          JSON.stringify({ added, edited, removed }, null, 2)
+        );
+      });
+
+      // 데이터 초기화
+      document.getElementById("btnReload").addEventListener("click", () => {
+        AUIGrid.setGridData(myGridID, structuredClone(window.SAMPLE_DATA));
+        log("데이터를 다시 불러왔습니다.");
+      });
+    });
+  </script>
+</body>
+</html>
