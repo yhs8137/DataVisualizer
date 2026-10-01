@@ -24,5 +24,15 @@ DataVisualizer/
    └─ data.js
 ```
 
-그 다음 `examples/basic/index.html`을 브라우저로 열면 됩니다.
-(데이터는 `data.js`에 들어 있어 `file://`로 열어도 동작합니다.)
+`AUIGridLicense.js`는 접속 도메인(브라우저 주소창의 호스트명)을 검사하므로
+`file://`로 직접 열지 말고 로컬 웹 서버로 띄워 라이선스에 등록된 도메인으로 접속하세요.
+
+```bash
+# 프로젝트 루트(DataVisualizer/)에서 실행
+npx serve -l 8080 .
+# 또는
+python3 -m http.server 8080
+```
+
+브라우저에서 `http://localhost:8080/examples/basic/` 로 접속합니다.
+라이선스가 `localhost`를 허용하지 않으면 등록된 도메인을 hosts 파일로 127.0.0.1에 매핑해 접속하세요.

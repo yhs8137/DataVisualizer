@@ -1,5 +1,5 @@
 // 예제용 샘플 데이터
-// file:// 로 바로 열어도 동작하도록 fetch 대신 전역 변수로 제공합니다.
+// 별도 데이터 서버 없이 쓰도록 fetch 대신 전역 변수로 제공합니다.
 window.SAMPLE_DATA = [
   { id: 1, name: "Anna", country: "Korea", product: "Laptop", quantity: 3, price: 1250000, date: "2026-09-01" },
   { id: 2, name: "Brian", country: "USA", product: "Monitor", quantity: 5, price: 320000, date: "2026-09-02" },
