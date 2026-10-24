@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AUIGrid 모바일 주문 목록</title>
+  <!-- 비상업용 CDN은 localhost 또는 127.0.0.1에서만 동작합니다. -->
+  <script src="https://cdn.jsdelivr.net/gh/aui-community/auigrid-noncommercial@main/dist/AUIGridLicense.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/aui-community/auigrid-noncommercial@main/dist/AUIGrid.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/aui-community/auigrid-noncommercial@main/dist/AUIGrid_style.css" crossorigin="anonymous">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font-family: -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; font-size: 14px; color: #242830; background: #f5f7fa; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .hint { margin: 0 0 12px; color: #5c6670; font-size: 13px; }
+    #grid_wrap { width: 100%; height: calc(100vh - 150px); min-height: 360px; }
+    #status { margin: 10px 0 0; font-size: 13px; color: #315da8; min-height: 1.5em; }
+
+    /* 밴드형 상위 셀 */
+    .m-customer { background: #edf3ff; color: #234b8f; font-weight: 600; text-align: left; }
+    .m-status-cell { background: #f8fafc; }
+    .m-status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #e2f4ed; color: #128568; }
+    .m-status.wait { background: #fff1d9; color: #b58123; }
+    .m-status.cancel { background: #fde8e8; color: #b42318; }
+    .m-right { text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>주문 목록</h1>
+  <p class="hint">수량 셀을 탭하면 숫자 키패드로 수정하고, 행을 길게 누르면 상세 정보를 봅니다.</p>
+  <div id="grid_wrap"></div>
+  <p id="status" role="status">그리드를 불러오는 중입니다.</p>
+
+  <script>
+    var myGridID;
+    var currentMode = "";
+    // 이 폭보다 좁으면 한 행을 위아래로 쌓는 밴드형으로 표시합니다.
+    var BAND_BREAKPOINT = 600;
+    var statusKinds = { "배송완료": "", "준비중": "wait", "취소": "cancel" };
+
+    // 데이터를 HTML로 표시할 때 태그로 해석되지 않도록 처리합니다.
+    function escapeText(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var status = document.getElementById("status");
+      if (!/^https?:$/.test(location.protocol)) {
+        status.textContent = "이 HTML을 로컬 웹 서버에 두고 http://localhost 또는 http://127.0.0.1 주소로 열어 주세요.";
+        return;
+      }
+      if (typeof AUIGrid === "undefined") {
+        status.textContent = "CDN 파일을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.";
+        return;
+      }
+
+      // 밴드형에서는 고객과 상태가 위 칸, 하위 칼럼이 아래 칸에 표시됩니다.
+      // 넓은 화면(flat)에서는 하위 칼럼 4개만 나란히 표시됩니다.
+      var columnLayout = [
+        {
+          dataField: "customer",
+          headerText: "고객",
+          bodyCell: true,
+          bodyCellHeight: "45%",
+          style: "m-customer",
+          editable: false,
+          children: [
+            { dataField: "product", headerText: "상품", width: "25%", minWidth: 80, editable: false },
+            {
+              dataField: "orderDate",
+              headerText: "주문일",
+              width: "25%",
+              minWidth: 70,
+              editable: false,
+              dataType: "date",
+              dateInputFormat: "yyyy-mm-dd",
+              formatString: "mm/dd"
+            }
+          ]
+        },
+        {
+          dataField: "status",
+          headerText: "상태",
+          bodyCell: true,
+          bodyCellHeight: "45%",
+          style: "m-status-cell",
+          editable: false,
+          renderer: { type: "TemplateRenderer" },
+          labelFunction: function (rowIndex, columnIndex, value) {
+            var kind = statusKinds[value] || "";
+            return '<span class="m-status ' + kind + '">' + escapeText(value) + "</span>";
+          },
+          children: [
+            {
+              dataField: "qty",
+              headerText: "수량",
+              width: "25%",
+              minWidth: 60,
+              dataType: "numeric",
+              style: "m-right",
+              // 모바일에서 숫자 키패드를 띄웁니다.
+              editRenderer: { type: "InputEditRenderer", onlyNumeric: true, inputMode: "numeric" }
+            },
+            {
+              dataField: "amount",
+              headerText: "금액",
+              width: "25%",
+              minWidth: 80,
+              dataType: "numeric",
+              formatString: "#,##0",
+              style: "m-right",
+              editable: false
+            }
+          ]
+        }
+      ];
+
+      var rows = [
+        { id: "A-1001", customer: "김서연", product: "노트북", orderDate: "2026-10-01", status: "배송완료", qty: 1, price: 1250000 },
+        { id: "A-1002", customer: "박민준", product: "모니터", orderDate: "2026-10-03", status: "준비중", qty: 2, price: 320000 },
+        { id: "A-1003", customer: "이도윤", product: "키보드", orderDate: "2026-10-05", status: "배송완료", qty: 3, price: 89000 },
+        { id: "A-1004", customer: "최지우", product: "마우스", orderDate: "2026-10-08", status: "취소", qty: 1, price: 35000 },
+        { id: "A-1005", customer: "정하은", product: "태블릿", orderDate: "2026-10-11", status: "준비중", qty: 1, price: 780000 },
+        { id: "A-1006", customer: "강지호", product: "이어폰", orderDate: "2026-10-14", status: "배송완료", qty: 4, price: 129000 },
+        { id: "A-1007", customer: "윤서준", product: "웹캠", orderDate: "2026-10-17", status: "준비중", qty: 2, price: 69000 },
+        { id: "A-1008", customer: "임채원", product: "스피커", orderDate: "2026-10-20", status: "배송완료", qty: 1, price: 210000 }
+      ];
+      rows.forEach(function (row) { row.amount = row.qty * row.price; });
+
+      myGridID = AUIGrid.create("#grid_wrap", columnLayout, {
+        rowIdField: "id",
+        editable: true,
+        autoEditBeginMode: true, // 터치 기기에서 한 번 탭으로 편집 시작
+        enableLongTap: true, // 길게 누르기 이벤트 사용
+        autoScrollSize: true, // 터치 기기에서는 얇은 스크롤바(scrollHeight4Mobile) 사용
+        enableSorting: true,
+        selectionMode: "singleRow",
+        showRowNumColumn: false,
+        showStateColumn: false,
+        applyRestPercentWidth: true,
+        headerHeight: 36
+      });
+      AUIGrid.setGridData(myGridID, rows);
+      applyLayout();
+      status.textContent = rows.length + "건의 주문을 표시했습니다.";
+
+      // 수량을 바꾸면 금액을 다시 계산합니다.
+      AUIGrid.bind(myGridID, "cellEditEnd", function (event) {
+        if (event.dataField !== "qty") return;
+        var qty = Number(event.value) || 0;
+        AUIGrid.updateRow(myGridID, { amount: qty * event.item.price }, event.rowIndex);
+        status.textContent = event.item.customer + "님 주문 수량을 " + qty + "개로 변경했습니다.";
+      });
+
+      AUIGrid.bind(myGridID, "cellLongTap", function (event) {
+        var item = event.item;
+        status.textContent = item.id + " · " + item.customer + " · " + item.product + " " + item.qty + "개 · " + item.status;
+      });
+
+      // 화면 폭이 바뀌면 레이아웃을 다시 고르고 그리드 크기를 맞춥니다.
+      new ResizeObserver(function () {
+        applyLayout();
+        AUIGrid.resize(myGridID);
+      }).observe(document.getElementById("grid_wrap"));
+    });
+
+    function applyLayout() {
+      var width = document.getElementById("grid_wrap").clientWidth;
+      var mode = width < BAND_BREAKPOINT ? "band" : "flat";
+      if (mode === currentMode) return;
+      AUIGrid.setProp(myGridID, { bodyLayoutMode: mode, rowHeight: mode === "band" ? 96 : 44 });
+      AUIGrid.refresh(myGridID);
+      currentMode = mode;
+    }
+  </script>
+</body>
+</html>
