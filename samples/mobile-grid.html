@@ -34,7 +34,7 @@
   <script>
     var myGridID;
     var currentMode = "";
-    // 이 폭보다 좁으면 한 행을 위아래로 쌓는 밴드형으로 표시합니다.
+    // 이 폭보다 좁으면 한 행을 위아래로 쌓는 밴드형, 넓으면 모든 칼럼을 펼친 flatAll로 표시합니다.
     var BAND_BREAKPOINT = 600;
     var statusKinds = { "배송완료": "", "준비중": "wait", "취소": "cancel" };
 
@@ -57,13 +57,14 @@
       }
 
       // 밴드형에서는 고객과 상태가 위 칸, 하위 칼럼이 아래 칸에 표시됩니다.
-      // 넓은 화면(flat)에서는 하위 칼럼 4개만 나란히 표시됩니다.
+      // 넓은 화면(flatAll)에서는 고객과 상태까지 모두 한 줄로 펼쳐 표시합니다.
       var columnLayout = [
         {
           dataField: "customer",
           headerText: "고객",
           bodyCell: true,
           bodyCellHeight: "45%",
+          width: 110, // flatAll에서 쓰는 폭
           style: "m-customer",
           editable: false,
           children: [
@@ -85,6 +86,7 @@
           headerText: "상태",
           bodyCell: true,
           bodyCellHeight: "45%",
+          width: 110, // flatAll에서 쓰는 폭
           style: "m-status-cell",
           editable: false,
           renderer: { type: "TemplateRenderer" },
@@ -168,7 +170,7 @@
 
     function applyLayout() {
       var width = document.getElementById("grid_wrap").clientWidth;
-      var mode = width < BAND_BREAKPOINT ? "band" : "flat";
+      var mode = width < BAND_BREAKPOINT ? "band" : "flatAll";
       if (mode === currentMode) return;
       AUIGrid.setProp(myGridID, { bodyLayoutMode: mode, rowHeight: mode === "band" ? 96 : 44 });
       AUIGrid.refresh(myGridID);
